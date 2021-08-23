@@ -16,6 +16,7 @@ def unison_shuffled_copies(a: list, b: list):
     except Exception:
         return a, b
 
+
 def double_area_side(y, x, h, w):
     h_half_side = h // 2
     y -= h_half_side
@@ -25,6 +26,7 @@ def double_area_side(y, x, h, w):
     x -= w_half_side
     w += w_half_side * 2
     return y, x, h, w
+
 
 def crop_image(image, y, x, h, w):
     y_from, x_from = y, x
@@ -42,11 +44,14 @@ def crop_image(image, y, x, h, w):
     cropped_image[y_offset:y_offset + crop.shape[0], x_offset:x_offset + crop.shape[1], :] = crop
     return cropped_image
 
+
 def crop_on_multiple_sizes(complete_image, y_from, y_to, x_from, x_to):
     h_orig, w_orig = y_to - y_from, x_to - x_from
-    near_image = cv2.resize(crop_image(complete_image, y_from, x_from, h_orig, w_orig), (h_orig, w_orig), interpolation=cv2.INTER_AREA)
+    near_image = cv2.resize(crop_image(complete_image, y_from, x_from, h_orig, w_orig), (h_orig, w_orig),
+                            interpolation=cv2.INTER_AREA)
     y_from, x_from, h, w = double_area_side(y_from, x_from, h_orig, w_orig)
-    mid_image = cv2.resize(crop_image(complete_image, y_from, x_from, h, w), (h_orig, w_orig), interpolation=cv2.INTER_AREA)
+    mid_image = cv2.resize(crop_image(complete_image, y_from, x_from, h, w), (h_orig, w_orig),
+                           interpolation=cv2.INTER_AREA)
     return np.concatenate((near_image, mid_image), axis=2).astype(np.float32)
 
 
@@ -81,12 +86,12 @@ class Dataset(BaseDataset):
             mask = np.expand_dims(cv2.imread(self.masks_fps[i], cv2.IMREAD_GRAYSCALE), axis=2)
             h, w, _ = image.shape
         except Exception:
-            image = cv2.imread(self.images_fps[i+1], cv2.IMREAD_COLOR if self.channels == 3 else cv2.IMREAD_GRAYSCALE)
+            image = cv2.imread(self.images_fps[i + 1], cv2.IMREAD_COLOR if self.channels == 3 else cv2.IMREAD_GRAYSCALE)
             if len(image.shape) == 2:
                 image = np.expand_dims(image, axis=2)
             image = equalize(image)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-            mask = np.expand_dims(cv2.imread(self.masks_fps[i+1], cv2.IMREAD_GRAYSCALE), axis=2)
+            mask = np.expand_dims(cv2.imread(self.masks_fps[i + 1], cv2.IMREAD_GRAYSCALE), axis=2)
             h, w, _ = image.shape
 
         # apply augmentations
@@ -114,7 +119,8 @@ class Dataset(BaseDataset):
         while len(images) < self.batch_size:
             y = random.randint(0, h - settings.segmentation_input_size)
             x = random.randint(0, w - settings.segmentation_input_size)
-            cropped_image = crop_on_multiple_sizes(image, y, y + settings.segmentation_input_size, x, x + settings.segmentation_input_size)
+            cropped_image = crop_on_multiple_sizes(image, y, y + settings.segmentation_input_size, x,
+                                                   x + settings.segmentation_input_size)
             normalized_image = normalize_channels(cropped_image)
             images.append(normalized_image)
             input_mask = mask[y:y + settings.segmentation_input_size, x:x + settings.segmentation_input_size, :]
@@ -135,7 +141,8 @@ class Dataset(BaseDataset):
             print(y, x)
             raise e
         if self.full_image:
-            return images_batch.transpose((3, 2, 0, 1)), masks_batch.transpose((3, 2, 0, 1)), (w // settings.segmentation_input_size) + 1
+            return images_batch.transpose((3, 2, 0, 1)), masks_batch.transpose((3, 2, 0, 1)), (
+                        w // settings.segmentation_input_size) + 1
         return images_batch.transpose((3, 2, 0, 1)), masks_batch.transpose((3, 2, 0, 1))
 
     def __len__(self):
